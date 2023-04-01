@@ -1,0 +1,8 @@
+{
+    "contracts":{
+        "digitalAsset":{
+            "address":"",
+            "abi":{"this is":"Demo"}
+        }
+    }
+}
