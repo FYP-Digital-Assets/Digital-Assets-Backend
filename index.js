@@ -1,16 +1,25 @@
 import express from 'express';
 import cors from 'cors';
-import { IPFSHandler } from './IPFSHandler.js';
 import fs from 'fs';
 import { createHash } from 'crypto';
+import db from './DbConnect.js';
 const port = 4000; //port number on which server runs
 const app = express();
 app.use(cors());
 app.use(express.json());
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
-// Create IPFS Handler
-const ipfsNode = new IPFSHandler();
 
+//get user info
+app.get('/userInfo', async function(req, res){
+    let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
+    res.send({code:200, data:account});
+  })
+
+//get content
+app.get('/content', async function(req, res){
+    let contents = await db.collection("Contents").find(req.body.condition).toArray();
+    res.send({code:200, data:contents})
+})
 //add content data in db
 app.post('/uploadContent',(req, res) => {
     
