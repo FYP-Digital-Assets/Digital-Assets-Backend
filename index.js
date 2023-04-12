@@ -40,11 +40,9 @@ app.post('/login', async (req,res)=>{
     }
     if(tokenDb == null){
         let ntoken = generateToken(user); // generateToken() is a function to generate a token
-        db.collection("UserLogs").insertOne({ethAddress:user, token:ntoken}, function(err, res2){
-            if(err)throw err
-            res.cookie('token', ntoken, { maxAge: 10000*1000*60*60*24*30, httpOnly: true }); 
-            res.send({code:200, data:account});
-        })
+        await db.collection("UserLogs").insertOne({ethAddress:user, token:ntoken})
+        res.cookie('token', ntoken, { maxAge: 10000*1000*60*60*24*30, httpOnly: true }); 
+        res.send({code:200, data:account});
         
         return;
     }
