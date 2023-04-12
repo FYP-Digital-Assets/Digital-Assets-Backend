@@ -10,7 +10,11 @@ const app = express();
 app.use(express.json());
 app.use(bodyParser.json())
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
-
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*"); // update with specific domains for production use
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+  });
 //get user info
 app.post('/userInfo', async function(req, res){
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
@@ -33,6 +37,7 @@ app.post('/login', async (req,res)=>{
        account = await db.collection("Users").findOne({ethAddress:req.body.user});
     }
     //get token and compare
+    //console.log("user", req.body);
     const user = req.body.user;
     const token = req.cookies?req.cookies.token:null;
     const tokenDb = await getTokenFromDB(user);
