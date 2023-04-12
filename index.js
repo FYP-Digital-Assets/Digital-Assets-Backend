@@ -24,29 +24,38 @@ app.get('/content', async function(req, res){
 app.post('/uploadContent',(req, res) => {
     
 });
-app.get('/login', (res,req)=>{
-    
+app.get('/login', async (req,res)=>{
+    let account = await db.collection("Users").findOne({ethAddress:req.body.user});
+    if(account == null){
+       await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_1280.png"})
+       account = await db.collection("Users").findOne({ethAddress:req.body.user});
+    }
     //get token and compare
     const user = req.body.user;
-    const token = req.cookies.token;
-    const tokenDb = getTokenFromDB(user);
-    if(token == tokenDb){ //token matched
-        res.send({code:200, msg:"token matched!!!"});
+    const token = req.cookies?req.cookies.token:null;
+    const tokenDb = await getTokenFromDB(user);
+    if(tokenDb != null && token == tokenDb.token){ //token matched and send account detail
+        res.send({code:200, data:account});
         return;
     }
     if(tokenDb == null){
-        const token = generateToken(user); // generateToken() is a function to generate a token
-        res.cookie('token', token, { maxAge: 1000*60*60*24*30, httpOnly: true }); // set the token as a cookie with a max age of 15 minutes
-        res.send({code:200, msg:"token sent!!!"});
+        let ntoken = generateToken(user); // generateToken() is a function to generate a token
+        db.collection("UserLogs").insertOne({ethAddress:user, token:ntoken}, function(err, res2){
+            if(err)throw err
+            res.cookie('token', ntoken, { maxAge: 10000*1000*60*60*24*30, httpOnly: true }); 
+            res.send({code:200, data:account});
+        })
+        
         return;
     }
     res.send({code:500, msg:"logout account from other devices!!!"});
 });
 function generateToken(user){
-    return createHash('sha256').update(user+(new Data().getTime())).digest('hex');
+    return createHash('sha256').update(user+(new Date().getTime())).digest('hex');
 }
-function getTokenFromDB(user){
+async function getTokenFromDB(user){
     //read token from DB
+    return await db.collection("UserLogs").findOne({ethAddress:user})
 }
 //api for contract's abi
 app.get('/contractsAbi', function(req, res){
