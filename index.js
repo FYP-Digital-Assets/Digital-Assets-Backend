@@ -10,13 +10,13 @@ app.use(express.json());
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
 
 //get user info
-app.get('/userInfo', async function(req, res){
+app.post('/userInfo', async function(req, res){
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
     res.send({code:200, data:account});
   })
 
 //get content
-app.get('/content', async function(req, res){
+app.post('/content', async function(req, res){
     let contents = await db.collection("Contents").find(req.body.condition).toArray();
     res.send({code:200, data:contents})
 })
@@ -24,7 +24,7 @@ app.get('/content', async function(req, res){
 app.post('/uploadContent',(req, res) => {
     
 });
-app.get('/login', async (req,res)=>{
+app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
     if(account == null){
        await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_1280.png"})
@@ -71,7 +71,7 @@ app.get('/contractAddress', function(req, res){
 //api for content fetch from ipfs
 app.get('/content/:cid', (req, res) => {
     console.log("hello");
-    //const file = await ipfsNode.getFile(req.params.cid);
+    //const file = await ipfsNode.getFile(req.body.cid);
     //file.pipe(res);
     res.send({code:200});
 });
