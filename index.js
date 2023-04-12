@@ -3,10 +3,12 @@ import express from 'express';
 import fs from 'fs';
 import { createHash } from 'crypto';
 import db from './DbConnect.js';
+import bodyParser from 'body-parser';
 const port = 4000; //port number on which server runs
 const app = express();
 // app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json())
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
 
 //get user info
@@ -48,7 +50,7 @@ app.post('/login', async (req,res)=>{
     }
     res.send({code:500, msg:"logout account from other devices!!!"});
 });
-function generateToken(user){
+function generateToken(user){ 
     return createHash('sha256').update(user+(new Date().getTime())).digest('hex');
 }
 async function getTokenFromDB(user){
