@@ -1,11 +1,11 @@
 import express from 'express';
-import cors from 'cors';
+// import cors from 'cors';
 import fs from 'fs';
 import { createHash } from 'crypto';
 import db from './DbConnect.js';
 const port = 4000; //port number on which server runs
 const app = express();
-app.use(cors());
+// app.use(cors());
 app.use(express.json());
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
 
