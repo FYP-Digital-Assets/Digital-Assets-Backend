@@ -4,12 +4,23 @@ import fs from 'fs';
 import { createHash } from 'crypto';
 import db from './DbConnect.js';
 import bodyParser from 'body-parser';
+import multer from 'multer';
 const port = 4000; //port number on which server runs
 const app = express();
 // app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json())
 const constants = JSON.parse(fs.readFileSync('Constants.json'));
+// Set up multer storage and limits
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "./profileImgs/");
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + ".jpeg");
+    },
+  });
+const upload = multer({ storage: storage });
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*"); // update with specific domains for production use
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -30,6 +41,7 @@ app.post('/content', async function(req, res){
 app.post('/uploadContent',(req, res) => {
     
 });
+//login api
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
     if(account == null){
@@ -62,6 +74,20 @@ async function getTokenFromDB(user){
     //read token from DB
     return await db.collection("UserLogs").findOne({ethAddress:user})
 }
+//update account api
+app.post('/updateAccount', upload.single('image'), async function(req, res){
+    if(!req.file){
+        res.send({code:500, msg:'account Update failed'});
+    }
+    else{
+  
+      db.collection("Users").updateOne({ ethAddress: req.body.ethAddress }, { $set: { img: req.file.filename, name: req.body.name, bio: req.body.bio } }, false, (result, err)=>{
+        res.send({code:200, msg:'account update successful!'});
+      })
+      
+    }
+  });
+
 //api for contract's abi
 app.get('/contractsAbi', function(req, res){
     console.log("abi");
