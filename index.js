@@ -5,11 +5,15 @@ import { createHash } from 'crypto';
 import db from './DbConnect.js';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
+import { IPFSHandler } from './IPFSHandler.js';
 
 import multer from 'multer';
 const port = 4000; //port number on which server runs
 const app = express();
 // app.use(cors());
+
+//const ipfs = new IPFSHandler();
+
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -24,7 +28,10 @@ var storage = multer.diskStorage({
       cb(null, Date.now() + ".jpeg");
     },
   });
+
 const upload = multer({ storage: storage });
+const tempUpload = multer({dest:"temporaryContent/"}); 
+
 // app.use(function(req, res, next) {
 //     // res.header("Access-Control-Allow-Origin", "*"); // update with specific domains for production use
 //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -49,7 +56,7 @@ app.post('/uploadContent',(req, res) => {
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
     if(account == null){
-       await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_1280.png"})
+       await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"dummyProfile.jpg"})
        account = await db.collection("Users").findOne({ethAddress:req.body.user});
     }
     //get token and compare
@@ -72,26 +79,36 @@ app.post('/login', async (req,res)=>{
     }
     res.send({code:500, msg:"logout account from other devices!!!"});
 });
+//generate token by taking hash of ethereum address and date
 function generateToken(user){ 
     return createHash('sha256').update(user+(new Date().getTime())).digest('hex');
 }
+//reterieve token from db
 async function getTokenFromDB(user){
     //read token from DB
     return await db.collection("UserLogs").findOne({ethAddress:user})
 }
 //update account api
-app.post('/updateAccount', upload.single('image'), async function(req, res){
+app.post('/updateProfile', upload.single('image'), async function(req, res){
     if(!req.file){
         res.send({code:500, msg:'account Update failed'});
     }
     else{
-  
-      db.collection("Users").updateOne({ ethAddress: req.body.ethAddress }, { $set: { img: req.file.filename, name: req.body.name, bio: req.body.bio } }, false, (result, err)=>{
-        res.send({code:200, msg:'account update successful!'});
+      db.collection("Users").updateOne({ ethAddress: req.body.ethAddress }, { $set: { img: req.file.filename} }, false, (result, err)=>{
+        res.send({code:200, msg:'account profile update successful!'});
       })
       
     }
   });
+app.post('/updateDetails', async function(req, res){
+  db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
+  res.send({code:200, msg:"account update successful"})
+})
+//upload content on ipfs
+app.post('/uploadContent', tempUpload.array('files'), function(req, res){
+  console.log(req.files[0].path);
+  res.send({code:200})
+})
 
 //api for contract's abi
 app.get('/contractsAbi', function(req, res){
@@ -111,7 +128,11 @@ app.get('/content/:cid', (req, res) => {
     //file.pipe(res);
     res.send({code:200});
 });
-
+//access profile images with url
+app.get('/profileImgs/:filename', function(req, res) {
+    const fileName = req.params.filename;
+    res.sendFile("profileImgs/"+fileName, { root: '.' })
+  });
 //server start listening
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);
