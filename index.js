@@ -6,13 +6,36 @@ import db from './DbConnect.js';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { IPFSHandler } from './IPFSHandler.js';
-
+import { publicEncrypt } from 'crypto';
+import { publicDecrypt } from 'crypto';
 import multer from 'multer';
 const port = 4000; //port number on which server runs
 const app = express();
 // app.use(cors());
 
-//const ipfs = new IPFSHandler();
+const ipfs = new IPFSHandler();
+
+const publicKey = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCBvNvbfdS3ZqrJFRlYSH1VteY3
+sW94kCyhZhpr5eqcgieMktNSVgekbiBsrers9etNJ2wFzxYIRy0wpChQnRZRI6a3
+9Fi9ZtQSgZ6GF10MDYZEcBmhmJ+AuwEk5Glh8sYdqcv234bZDgUeaUtECNq2GPjS
+F+MDom4JWBD+wg/bhwIDAQAB
+-----END PUBLIC KEY-----`;
+const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIICWwIBAAKBgQCBvNvbfdS3ZqrJFRlYSH1VteY3sW94kCyhZhpr5eqcgieMktNS
+VgekbiBsrers9etNJ2wFzxYIRy0wpChQnRZRI6a39Fi9ZtQSgZ6GF10MDYZEcBmh
+mJ+AuwEk5Glh8sYdqcv234bZDgUeaUtECNq2GPjSF+MDom4JWBD+wg/bhwIDAQAB
+AoGACOPzQQBHcmXzsCHlAbq99ACqDQj4tY9Tr5+6kchIon78zNJG7u58SZVOXYQx
+hBl6DWh1K5S8Usbl3t5w8M1C+SRDdxLTeIWqYiAkZ66rfcm4HStvkCPo7Zf/G1yX
+Bj1q3rb2CF6ga9MvBIcormJPmE46ftZNDP+UxeD62RJl68ECQQD4dxQxqV3qvRIW
+JoRnryYPq1tEuMvf/219iWRNZ6BdAhgs654r5AomblEzBPXHyu+Z9D1wIDJXrrvL
+38SE2FRnAkEAhawOy5p9deHF2Q4a7yutfWBNziMCyJULffSC334W1g8Hm0X2u69v
+50GKrfgCf2yKe3AkM0DkESFg8VS8wwDL4QJAGHjqFUYgSPmcaXAbxHac4hg3ohot
+gn+PEjlRFsqpIeAN74a5iosocMaW2taXOrmDRf+neX7CVp6QQrFkks0X6wJAQenB
+sewQCVy27nziEyV6euRN+WOSL84uyIEVN5c5M3xdx9cL/yhXCbVr6LTupl6jOpLl
+htBspXXME7QxEAcIgQJASI5GnTgf41gTFbNj6rGB9OozKST0F15dHsGFYOcWLJz0
+7GqPRR8E62qpoMJwCYDzZ04TWkOLhKwV/VJJnyT7Nw==
+-----END RSA PRIVATE KEY-----`;
 
 app.use(express.json());
 app.use(bodyParser.json());
@@ -48,10 +71,6 @@ app.post('/content', async function(req, res){
     let contents = await db.collection("Contents").find(req.body.condition).toArray();
     res.send({code:200, data:contents})
 })
-//add content data in db
-app.post('/uploadContent',(req, res) => {
-    
-});
 //login api
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
@@ -104,12 +123,31 @@ app.post('/updateDetails', async function(req, res){
   db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
   res.send({code:200, msg:"account update successful"})
 })
-//upload content on ipfs
-app.post('/uploadContent', tempUpload.array('files'), function(req, res){
-  console.log(req.files[0].path);
-  res.send({code:200})
+//upload content on ipfs and return cid
+app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
+  
+  let cid = await uploadIPFS(req);
+  console.log(cid)
+  const encrypted = publicEncrypt(publicKey, Buffer.from(cid.toString(), 'utf-8'))
+  cid = encrypted.toString('base64');
+  res.send({code:"200", msg:"uploaded successful", cid:cid.toString()});
 })
-
+app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
+  //console.log(req.files)
+  let cid = await uploadIPFS(req);
+  console.log(cid)
+  res.send({code:"200", msg:"today", cid:cid.toString()});
+})
+async function uploadIPFS(req){
+  let cid = await ipfs.addFile({path:req.file, content:req.file.buffer});
+  //remove file from storage
+  fs.unlink(req.file.path, (err) => {
+    if (err) {
+      console.error(err);
+    }
+  });
+  return cid;
+}
 //api for contract's abi
 app.get('/contractsAbi', function(req, res){
     console.log("abi");

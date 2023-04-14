@@ -1,19 +1,21 @@
-import * as IPFS from 'ipfs-core'; //
+import * as IPFS from 'ipfs-http-client'; //
 export class IPFSHandler{
     //create IPFS node
     constructor(){
-        this.node = IPFS.create();
+        this.node = IPFS.create({url:'http://127.0.0.1:5001'});
     }
 
-    //add file add on ipfs
+    //add file add on ipfs and 
     async addFile(file) {
-        return await (await this.node).add(file);
+        let result = await this.node.add(file);
+        return result.cid;
     }
     
 
     //get content of IPFS using cid of content
     async getFile(hash){
         //read from ipfs
-        return await (await this.node).cat(hash); //it async iterable
+        let result = await this.node.cat(hash);
+        return result; //it async iterable
     }
 }
