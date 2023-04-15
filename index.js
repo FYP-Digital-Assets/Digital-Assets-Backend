@@ -51,10 +51,17 @@ var storage = multer.diskStorage({
       cb(null, Date.now() + ".jpeg");
     },
   });
-
+var storageThumb = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "./thumbnails/");
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + ".jpeg");
+    },
+  });
 const upload = multer({ storage: storage });
 const tempUpload = multer({dest:"temporaryContent/"}); 
-
+const thumbnails = multer({storage:storageThumb});
 // app.use(function(req, res, next) {
 //     // res.header("Access-Control-Allow-Origin", "*"); // update with specific domains for production use
 //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -138,6 +145,12 @@ app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
   console.log(cid)
   res.send({code:"200", msg:"today", cid:cid.toString()});
 })
+app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
+  console.log("body ",req.body)
+  const {title, description, clip} = req.body;
+  await db.collection("Contents").insertOne({title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
+  res.send({code:200, msg:"content uploaded successfully!"});
+})
 async function uploadIPFS(req){
   let cid = await ipfs.addFile({path:req.file, content:req.file.buffer});
   //remove file from storage
@@ -170,6 +183,10 @@ app.get('/content/:cid', (req, res) => {
 app.get('/profileImgs/:filename', function(req, res) {
     const fileName = req.params.filename;
     res.sendFile("profileImgs/"+fileName, { root: '.' })
+  });
+app.get('/thumbnail/:filename', function(req, res) {
+    const fileName = req.params.filename;
+    res.sendFile("thumbnails/"+fileName, { root: '.' })
   });
 //server start listening
 app.listen(port, () => {
