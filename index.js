@@ -130,7 +130,7 @@ app.post('/updateDetails', async function(req, res){
   db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
   res.send({code:200, msg:"account update successful"})
 })
-//upload content on ipfs and return cid
+//upload main content on ipfs and return encrypted cid
 app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
   
   let cid = await uploadIPFS(req);
@@ -139,18 +139,29 @@ app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
   cid = encrypted.toString('base64');
   res.send({code:"200", msg:"uploaded successful", cid:cid.toString()});
 })
+//upload clip of content on ipfs and return cid
 app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
   //console.log(req.files)
   let cid = await uploadIPFS(req);
   console.log(cid)
   res.send({code:"200", msg:"today", cid:cid.toString()});
 })
+//upload thumbnail on server, and store additional details on database
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
-  console.log("body ",req.body)
+  //console.log("body ",req.body)
   const {title, description, clip, address} = req.body;
   await db.collection("Contents").insertOne({address, title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
   res.send({code:200, msg:"content uploaded successfully!"});
 })
+
+//upload review of content
+app.post('/uploadReview', async(req, res)=>{
+  const {review, ethAddress, address} = req.body;
+  await db.collection("Reviews").insertOne({address, ethAddress, review});
+  res.send({code:200, msg:"review uploaded"});
+})
+
+//input file then upload on ipfs and return cid
 async function uploadIPFS(req){
   let cid = await ipfs.addFile({path:req.file, content:req.file.buffer});
   //remove file from storage
@@ -179,6 +190,15 @@ app.get('/content/:address', async(req, res) => {
     const result = await db.collection("Contents").findOne({address})
     res.send({code:200, data:result});
 });
+
+
+//get all reviews of content
+app.get('/reviews/:address', async(req, res)=>{
+  const address = req.params.address;
+  const reviews = await db.collection("Reviews").find({address}).toArray();
+  res.send({code:200, reviews})
+})
+
 //access profile images with url
 app.get('/profileImgs/:filename', function(req, res) {
     const fileName = req.params.filename;
