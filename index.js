@@ -147,8 +147,8 @@ app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
 })
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
   console.log("body ",req.body)
-  const {title, description, clip} = req.body;
-  await db.collection("Contents").insertOne({title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
+  const {title, description, clip, address} = req.body;
+  await db.collection("Contents").insertOne({address, title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
   res.send({code:200, msg:"content uploaded successfully!"});
 })
 async function uploadIPFS(req){
@@ -172,18 +172,19 @@ app.get('/contractAddress', function(req, res){
     res.send({address:constants.contracts.digitalAsset.address});
 });
 
-//api for content fetch from ipfs
-app.get('/content/:cid', (req, res) => {
+//api for content detail fetch from database
+app.get('/content/:address', async(req, res) => {
     console.log("hello");
-    //const file = await ipfsNode.getFile(req.body.cid);
-    //file.pipe(res);
-    res.send({code:200});
+    const address = req.params.address;
+    const result = await db.collection("Contents").findOne({address})
+    res.send({code:200, data:result});
 });
 //access profile images with url
 app.get('/profileImgs/:filename', function(req, res) {
     const fileName = req.params.filename;
     res.sendFile("profileImgs/"+fileName, { root: '.' })
   });
+//access thumbnail image with url
 app.get('/thumbnail/:filename', function(req, res) {
     const fileName = req.params.filename;
     res.sendFile("thumbnails/"+fileName, { root: '.' })
