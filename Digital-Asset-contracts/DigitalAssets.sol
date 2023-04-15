@@ -4,6 +4,7 @@ import "./Asset.sol";
 contract DigitalAssets{
     Asset[] private assets; //owner's mapping with their created content
     address private organization; //address of organization
+    event MyEvent(Asset value);
     constructor(){
         organization = msg.sender;
     }
@@ -29,7 +30,9 @@ contract DigitalAssets{
     }
 
     //create new contract for content and store it on assets map
-    function addContent(string memory _contentRef, string memory _clipRef, uint _sellingPrice, uint _licensePrice, uint _viewFee) public { //add new content
-        assets.push(new Asset(msg.sender, _contentRef, _clipRef, _sellingPrice, _licensePrice, _viewFee, organization));
+    function addContent(string memory _contentRef, uint _sellingPrice, uint _licensePrice, uint _viewFee) public { //add new content
+        Asset asset = new Asset(msg.sender, _contentRef, _sellingPrice, _licensePrice, _viewFee, organization);
+        assets.push(asset);
+        emit MyEvent(asset);
     }
 }
