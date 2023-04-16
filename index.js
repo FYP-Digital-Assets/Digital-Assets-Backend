@@ -3,12 +3,14 @@ import cors from 'cors';
 import fs from 'fs';
 import { createHash } from 'crypto';
 import db from './DbConnect.js';
+import path from 'path';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { IPFSHandler } from './IPFSHandler.js';
 import { publicEncrypt } from 'crypto';
-import { publicDecrypt } from 'crypto';
+import { privateDecrypt } from 'crypto';
 import multer from 'multer';
+import mime from 'mime-types'
 const port = 4000; //port number on which server runs
 const app = express();
 // app.use(cors());
@@ -59,8 +61,16 @@ var storageThumb = multer.diskStorage({
       cb(null, Date.now() + ".jpeg");
     },
   });
+  var storageTemp = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "./temporaryContent/");
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + path.extname(file.originalname));
+    },
+  });
 const upload = multer({ storage: storage });
-const tempUpload = multer({dest:"temporaryContent/"}); 
+const tempUpload = multer({storage:storageTemp}); 
 const thumbnails = multer({storage:storageThumb});
 // app.use(function(req, res, next) {
 //     // res.header("Access-Control-Allow-Origin", "*"); // update with specific domains for production use
@@ -134,23 +144,34 @@ app.post('/updateDetails', async function(req, res){
 app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
   
   let cid = await uploadIPFS(req);
-  console.log(cid)
+  const hash = createHash('sha256').update(cid).digest("hex");
+  const result = await db.collection("HashedCid").findOne({hash})
+  console.log("result : ", result)
+  if(result!=null){
+    res.send({code:500, msg:"content already uploaded"})
+    return;
+  }
+  await db.collection("HashedCid").insertOne({hash});
+  //console.log(cid)
   const encrypted = publicEncrypt(publicKey, Buffer.from(cid.toString(), 'utf-8'))
-  cid = encrypted.toString('base64');
+
+  cid = encrypted.toString('base64url');
   res.send({code:"200", msg:"uploaded successful", cid:cid.toString()});
 })
 //upload clip of content on ipfs and return cid
 app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
   //console.log(req.files)
   let cid = await uploadIPFS(req);
-  console.log(cid)
-  res.send({code:"200", msg:"today", cid:cid.toString()});
+
+  res.send({code:"200", msg:"today", cid});
 })
 //upload thumbnail on server, and store additional details on database
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
   //console.log("body ",req.body)
   const {title, description, clip, address} = req.body;
+  
   await db.collection("Contents").insertOne({address, title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
+
   res.send({code:200, msg:"content uploaded successfully!"});
 })
 
@@ -163,7 +184,9 @@ app.post('/uploadReview', async(req, res)=>{
 
 //input file then upload on ipfs and return cid
 async function uploadIPFS(req){
-  let cid = await ipfs.addFile({path:req.file, content:req.file.buffer});
+  //console.log("file", req.file)
+  const file = fs.readFileSync(req.file.path);
+  let cid = await ipfs.addFile(file);
   //remove file from storage
   fs.unlink(req.file.path, (err) => {
     if (err) {
@@ -172,17 +195,6 @@ async function uploadIPFS(req){
   });
   return cid;
 }
-//api for contract's abi
-app.get('/contractsAbi', function(req, res){
-    console.log("abi");
-    res.send({abi:constants.contracts.digitalAsset.abi});
-});
-
-//api for contract address
-app.get('/contractAddress', function(req, res){
-    res.send({address:constants.contracts.digitalAsset.address});
-});
-
 //api for content detail fetch from database
 app.get('/content/:address', async(req, res) => {
     console.log("hello");
@@ -209,6 +221,76 @@ app.get('/thumbnail/:filename', function(req, res) {
     const fileName = req.params.filename;
     res.sendFile("thumbnails/"+fileName, { root: '.' })
   });
+
+//access content from ipfs with non encrypted cid
+app.get('/ipfs/:cid', async function(req, res){
+  const cid = req.params.cid;
+  
+  const buffer = await getDataBuffer(cid)
+  const contentType = mime.contentType(cid) || 'application/octet-stream'
+  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
+  res.setHeader('Content-Type', contentType)
+  const tempFilePath = "temporaryContent/"+cid;
+  fs.writeFileSync(tempFilePath, buffer)
+  
+  // serve the file using res.sendFile
+  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+    if (err) {
+      console.error(err)
+      res.status(500).send('Error serving file')
+    }
+    // delete the temporary file after sending it
+    fs.unlinkSync(tempFilePath)
+  })
+})
+app.get('/ipfsEncrypted/:cid', async function(req, res){
+  const encrypted = Buffer.from(req.params.cid, 'base64url');
+  
+  // Decrypt the encrypted buffer with the private key
+  const cid = privateDecrypt(privateKey, encrypted);
+  const buffer = await getDataBuffer(cid)
+  const contentType = mime.contentType(cid) || 'application/octet-stream'
+  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
+  res.setHeader('Content-Type', contentType)
+  const tempFilePath = "temporaryContent/"+cid;
+  fs.writeFileSync(tempFilePath, buffer)
+  
+  // serve the file using res.sendFile
+  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+    if (err) {
+      console.error(err)
+      res.status(500).send('Error serving file')
+    }
+    // delete the temporary file after sending it
+    fs.unlinkSync(tempFilePath)
+  })
+})
+
+//get data from ipfs and send it in buffer
+async function getDataBuffer(cid){
+  const file = await ipfs.getFile(cid);
+
+  const fileContents = []
+  for await (const chunk of file) {
+    fileContents.push(chunk)
+  }
+  
+  const buffer = Buffer.concat(fileContents)
+  return buffer;
+}
+
+
+
+//api for digital asset contract address and abi
+app.get('/digitalAssetContract', function(req, res){
+  res.send({abi:constants.contracts.digitalAsset.abi, address:constants.contracts.digitalAsset.address});
+});
+
+//api for asset abi
+app.get('/assetContract', function(req, res){
+  res.send({abi:constants.contracts.asset.abi})
+})
+
 //server start listening
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);
