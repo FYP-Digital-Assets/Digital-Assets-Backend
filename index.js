@@ -11,8 +11,11 @@ import { publicEncrypt } from 'crypto';
 import { privateDecrypt } from 'crypto';
 import multer from 'multer';
 import mime from 'mime-types'
+import { ReadTX } from './ReadTX.js';
+import { IsLicensorOwner } from './IsLicensorOwner.js';
 const port = 4000; //port number on which server runs
 const app = express();
+
 // app.use(cors());
 
 const ipfs = new IPFSHandler();
@@ -243,13 +246,57 @@ app.get('/ipfs/:cid', async function(req, res){
     fs.unlinkSync(tempFilePath)
   })
 })
-app.get('/ipfsEncrypted/:cid', async function(req, res){
-  const encrypted = Buffer.from(req.params.cid, 'base64url');
+app.get('/view/:txHash', async function(req, res){
+  const txHash = req.params.txHash;
+  const record = db.collection("ViewTxHistory").find({txHash});
+  if(record){
+    res.send({code:500, msg:"view already claimed"})
+    return;
+  }
+  const data = await ReadTX(txHash);
+  //console.log("data ", data)
+  const encrypted = Buffer.from(data, 'base64url');
   
   // Decrypt the encrypted buffer with the private key
   const cid = privateDecrypt(privateKey, encrypted);
   const buffer = await getDataBuffer(cid)
   const contentType = mime.contentType(cid) || 'application/octet-stream'
+  db.collection("ViewTxHistory").insertOne({txHash})
+  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
+  res.setHeader('Content-Type', contentType)
+  const tempFilePath = "temporaryContent/"+cid;
+  fs.writeFileSync(tempFilePath, buffer)
+  
+  // serve the file using res.sendFile
+  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+    if (err) {
+      console.error(err)
+      res.status(500).send('Error serving file')
+    }
+    // delete the temporary file after sending it
+    fs.unlinkSync(tempFilePath)
+  })
+})
+
+app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid', async function(req, res){
+  const txHash = req.params.txHash;
+  const contractAddr = req.params.contractAddr;
+  const userAddr = req.params.userAddr;
+  const data = req.params.cid;
+  const isLicensorOwner = await IsLicensorOwner(contractAddr, userAddr);
+  //console.log("licensor : ", isLicensorOwner)
+  if(!isLicensorOwner){
+    res.send({code:500, msg:"not owner or licensor"})
+    return;
+  }
+  //console.log("data ", data)
+  const encrypted = Buffer.from(data, 'base64url');
+  
+  // Decrypt the encrypted buffer with the private key
+  const cid = privateDecrypt(privateKey, encrypted);
+  const buffer = await getDataBuffer(cid)
+  const contentType = mime.contentType(cid) || 'application/octet-stream'
+  
   res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
   res.setHeader('Content-Type', contentType)
   const tempFilePath = "temporaryContent/"+cid;
@@ -278,8 +325,6 @@ async function getDataBuffer(cid){
   const buffer = Buffer.concat(fileContents)
   return buffer;
 }
-
-
 
 //api for digital asset contract address and abi
 app.get('/digitalAssetContract', function(req, res){

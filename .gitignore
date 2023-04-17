@@ -2,3 +2,4 @@ node_modules/
 profileImgs/*
 !profileImgs/dummyProfile.jpg
 thumbnails/*
+temporaryContent/*
