@@ -12,7 +12,7 @@ working:
 find records that meet the condition.
 send retrieved records in array format as response.
 
-login
+* login
 goal: register/authenticate user and send information of user
 input: send ethereum address in body with key as "user" and cookies.token
 working:
