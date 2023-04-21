@@ -24,7 +24,7 @@ and if token(from database) is null (means user is doing first time login) then 
 
 Note: token is hash of ethAddress of user and timestamp, for hashing sha256 algorithm is used.
 
-updateProfile
+* updateProfile
 goal: update the profile picture of user.
 input: send image file in body with key as "image"
 working:
@@ -32,14 +32,14 @@ if file not sent in request, send message "account update failed" as response
 otherwise store image on server and update user record(set img field to filename of image)
 send message "account profile update successful!" as response
 
-updateDetails
+* updateDetails
 goal: update the details of user such as name and bio.
 input: send details json object in body with key as "details" and ethAdress with key as "ethAddress"
 working;
 update detail of user with same ethAddress (body.ethAddress)
 send message "account update successful" as response.
 
-uploadMainContent
+* uploadMainContent
 goal: upload main content of user of IPfS, ensure uniqueness of content
 input: send file in body with key as "file"
 working:
@@ -52,7 +52,7 @@ otherwise store hash in database and send encrypted cid as response
 
 Note: we are storing hash CID in databse to avoid plagirised content and we are doing hash so if some one find database record it will get nothing. We are encrypting cid with a public key so that if some one remeber CID he cannot actually get the content without our platform.
 
-uploadClipContent
+* uploadClipContent
 goal: upload clip/preview of main content on ipfs
 input: send file in body with key as "file"
 working:
@@ -60,7 +60,7 @@ store file in temporary directory
 upload file on IPFS and find CID (content id) and remove content from temporary directory
 send CID as response.
 
-uploadContent
+* uploadContent
 goal: upload detail of content on database such as thumbnail, title, description, contract address
 input: send image of thumbnail with key as file and other details.
 working:
