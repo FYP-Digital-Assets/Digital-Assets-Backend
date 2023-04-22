@@ -68,7 +68,7 @@ extract title, description, clip CID, and address from request.
 add record with above details and additionally add current data into database
 send message "content uploaded successful" as response.
 
-uploadReview
+* uploadReview
 goal: upload review of content on databse.
 input: send review, contract address of content ethAddress of user.
 working:
@@ -76,7 +76,7 @@ extract review, address and ethAddress from request
 store all things on database
 send message "review uploaded" as response.
 
-content/:address
+* content/:address
 goal: fetch content detail from database associated to contract address.
 input: send contract address of content in parameter of url as "address"
 working:
@@ -84,7 +84,7 @@ fetch address from url
 find record with same address in database
 send record as response
 
-review/:address
+* review/:address
 goal: get all reviews related to contract address of content
 input: send contract address of content as parameter in url as "address"
 working:
@@ -117,7 +117,7 @@ read content from IPFS in buffer.
 store it in temprary directory
 send file as reponse and remove file from temporary directory.
 
-view/:txHash
+* view/:txHash
 goal: ensure transaction for viewership of content, avoid double spending of view and send content from ipfs to user.
 input: send transaction hash as parameter in url as "txHash"
 working:
@@ -129,7 +129,7 @@ store content file on temprary directory
 send file as response and remove file from temporary directory
 store transaction hash on database
 
-licenseOrOwner/:contractAddr/:userAddr/:cid
+* licenseOrOwner/:contractAddr/:userAddr/:cid
 goal: ensure that user is licensor or owner then send content from IPFS to user.
 input: send contract address, user address, and CID as parameter in url as contractAddr, userAddr and cid
 working:
