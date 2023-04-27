@@ -333,7 +333,7 @@ app.get('/digitalAssetContract', function(req, res){
 
 //api for asset abi
 app.get('/assetContract', function(req, res){
-  res.send({abi:constants.contracts.asset.abi})
+  res.send({abi:constants.contracts.asset})
 })
 
 //server start listening
