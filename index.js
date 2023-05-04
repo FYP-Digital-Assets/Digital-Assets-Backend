@@ -93,7 +93,7 @@ app.post('/content', async function(req, res){
     res.send({code:200, data:contents})
 })
 app.post('/explore', async function(req, res){
-  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page).limit(10).toArray();
+  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page * 10).limit(10).toArray();
   res.send({code:200, data:contents})
 })
 //login api
