@@ -92,6 +92,10 @@ app.post('/content', async function(req, res){
     let contents = await db.collection("Contents").find(req.body.condition).toArray();
     res.send({code:200, data:contents})
 })
+app.post('/explore', async function(req, res){
+  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page).limit(10).toArray();
+  res.send({code:200, data:contents})
+})
 //login api
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
