@@ -1,14 +1,16 @@
 import Web3 from 'web3';
 import fs from 'fs';
-let contractDetails;
+let contractDetails, rpc;
 try {
 	const constants = JSON.parse(fs.readFileSync('Constants.json'));
     contractDetails = constants.contracts.digitalAsset;
+    rpc = constants.rpc;
+    console.log(rpc)
 } catch (error) {
 	console.error('Error:', error);
 }
 
-const web3 = new Web3('http://127.0.0.1:7545');
+const web3 = new Web3(rpc);
 const abi = contractDetails.abi;
 const bytecode = contractDetails.bytecode;
 const contract = new web3.eth.Contract(abi);

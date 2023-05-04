@@ -83,6 +83,7 @@ const thumbnails = multer({storage:storageThumb});
 //get user info
 app.post('/userInfo', async function(req, res){
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
+    console.log("ethAddress ", req.body.ethAddress)
     res.send({code:200, data:account});
   })
 
