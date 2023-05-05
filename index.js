@@ -93,7 +93,7 @@ app.post('/content', async function(req, res){
     res.send({code:200, data:contents})
 })
 app.post('/explore', async function(req, res){
-  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page * 10).limit(10).toArray();
+  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page*10).limit(10).toArray();
   res.send({code:200, data:contents})
 })
 //login api
@@ -176,9 +176,9 @@ app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
 //upload thumbnail on server, and store additional details on database
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
   //console.log("body ",req.body)
-  const {title, description, clip, address} = req.body;
+  const {title, description, clip, address, ext, type} = req.body;
   
-  await db.collection("Contents").insertOne({address, title,description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString()});
+  await db.collection("Contents").insertOne({address, title, type, description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext});
 
   res.send({code:200, msg:"content uploaded successfully!"});
 })
@@ -231,18 +231,15 @@ app.get('/thumbnail/:filename', function(req, res) {
   });
 
 //access content from ipfs with non encrypted cid
-app.get('/ipfs/:cid', async function(req, res){
+app.get('/ipfs/:cid/:ext', async function(req, res){
   const cid = req.params.cid;
-  
+  const ext = req.params.ext
   const buffer = await getDataBuffer(cid)
-  const contentType = mime.contentType(cid) || 'application/octet-stream'
-  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
-  res.setHeader('Content-Type', contentType)
-  const tempFilePath = "temporaryContent/"+cid;
+  const tempFilePath = "temporaryContent/"+cid+"."+ext;
   fs.writeFileSync(tempFilePath, buffer)
   
   // serve the file using res.sendFile
-  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+  res.sendFile(tempFilePath, {root:"." }, (err) => {
     if (err) {
       console.error(err)
       res.status(500).send('Error serving file')
@@ -251,8 +248,9 @@ app.get('/ipfs/:cid', async function(req, res){
     fs.unlinkSync(tempFilePath)
   })
 })
-app.get('/view/:txHash', async function(req, res){
+app.get('/view/:txHash/:ext', async function(req, res){
   const txHash = req.params.txHash;
+  const ext = req.params.ext;
   const record = db.collection("ViewTxHistory").find({txHash});
   if(record){
     res.send({code:500, msg:"view already claimed"})
@@ -265,15 +263,14 @@ app.get('/view/:txHash', async function(req, res){
   // Decrypt the encrypted buffer with the private key
   const cid = privateDecrypt(privateKey, encrypted);
   const buffer = await getDataBuffer(cid)
-  const contentType = mime.contentType(cid) || 'application/octet-stream'
+  
   db.collection("ViewTxHistory").insertOne({txHash})
-  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
-  res.setHeader('Content-Type', contentType)
-  const tempFilePath = "temporaryContent/"+cid;
+  
+  const tempFilePath = "temporaryContent/"+cid+"."+ext;
   fs.writeFileSync(tempFilePath, buffer)
   
   // serve the file using res.sendFile
-  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+  res.sendFile(tempFilePath, { root:"." }, (err) => {
     if (err) {
       console.error(err)
       res.status(500).send('Error serving file')
@@ -283,8 +280,8 @@ app.get('/view/:txHash', async function(req, res){
   })
 })
 
-app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid', async function(req, res){
-  const txHash = req.params.txHash;
+app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid/:ext', async function(req, res){
+  const ext = req.params.ext
   const contractAddr = req.params.contractAddr;
   const userAddr = req.params.userAddr;
   const data = req.params.cid;
@@ -300,15 +297,12 @@ app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid', async function(req, res)
   // Decrypt the encrypted buffer with the private key
   const cid = privateDecrypt(privateKey, encrypted);
   const buffer = await getDataBuffer(cid)
-  const contentType = mime.contentType(cid) || 'application/octet-stream'
   
-  res.setHeader('Content-Disposition', `attachment; filename=${cid}`)
-  res.setHeader('Content-Type', contentType)
-  const tempFilePath = "temporaryContent/"+cid;
+  const tempFilePath = "temporaryContent/"+cid+"."+ext;
   fs.writeFileSync(tempFilePath, buffer)
   
   // serve the file using res.sendFile
-  res.sendFile(tempFilePath, { type: contentType, root:"." }, (err) => {
+  res.sendFile(tempFilePath, { root:"." }, (err) => {
     if (err) {
       console.error(err)
       res.status(500).send('Error serving file')
