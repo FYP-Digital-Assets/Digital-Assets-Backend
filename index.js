@@ -178,7 +178,7 @@ app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
   //console.log("body ",req.body)
   const {title, description, clip, address, ext, type} = req.body;
   
-  await db.collection("Contents").insertOne({address, title, type, description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext});
+  await db.collection("Contents").insertOne({address, title, type, description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext, view:0});
 
   res.send({code:200, msg:"content uploaded successfully!"});
 })
@@ -248,10 +248,11 @@ app.get('/ipfs/:cid/:ext', async function(req, res){
     fs.unlinkSync(tempFilePath)
   })
 })
-app.get('/view/:txHash/:ext', async function(req, res){
+app.get('/view/:address/:txHash/:ext', async function(req, res){
   const txHash = req.params.txHash;
   const ext = req.params.ext;
   const record = db.collection("ViewTxHistory").find({txHash});
+  db.collection("Contents").updateOne({address:req.params.address}, {$inc:{view:1}})
   if(record){
     res.send({code:500, msg:"view already claimed"})
     return;
@@ -292,6 +293,7 @@ app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid/:ext', async function(req,
     return;
   }
   //console.log("data ", data)
+  db.collection("Contents").updateOne({address:contractAddr}, {$inc:{view:1}})
   const encrypted = Buffer.from(data, 'base64url');
   
   // Decrypt the encrypted buffer with the private key
