@@ -63,6 +63,7 @@ var storageThumb = multer.diskStorage({
     filename: function (req, file, cb) {
       cb(null, Date.now() + ".jpeg");
     },
+    limits: { fieldSize: 2 * 1024 * 1024 }
   });
   var storageTemp = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -175,10 +176,10 @@ app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
 })
 //upload thumbnail on server, and store additional details on database
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
-  //console.log("body ",req.body)
-  const {title, description, clip, address, ext, type} = req.body;
+  console.log("body obj ",req.body.obj)
+  const obj = JSON.parse(req.body.obj);
   
-  await db.collection("Contents").insertOne({address, title, type, description,clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext, view:0});
+  await db.collection("Contents").insertOne({address:obj.address, title:obj.title, type:obj.type, description: obj.description,clip:obj.clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext:obj.ext, view:0});
 
   res.send({code:200, msg:"content uploaded successfully!"});
 })
