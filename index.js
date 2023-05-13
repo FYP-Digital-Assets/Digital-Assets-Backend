@@ -124,6 +124,13 @@ app.post('/login', async (req,res)=>{
     }
     res.send({code:500, msg:"logout account from other devices!!!"});
 });
+
+//logout api
+app.post('/logout', async(req, res)=>{
+  const {ethAddress} = req.body;
+  await db.collection('UserLogs').deleteOne({ethAddress})
+  res.send({code:"200", msg:"logout successful"})
+})
 //generate token by taking hash of ethereum address and date
 function generateToken(user){ 
     return createHash('sha256').update(user+(new Date().getTime())).digest('hex');
