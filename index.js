@@ -93,10 +93,23 @@ app.post('/content', async function(req, res){
     let contents = await db.collection("Contents").find(req.body.condition).toArray();
     res.send({code:200, data:contents})
 })
+//get latest content
 app.post('/explore', async function(req, res){
-  let contents = await db.collection("Contents").find().sort({_id:-1}).skip(req.body.page*10).limit(10).toArray();
+  let {contentType} = req.body
+  contentType = contentType.toLowerCase()
+  if(contentType == "all"){
+    contentType = ""
+  }
+  let contents;
+  if(['audio', "video", "image", ""].includes(contentType)){
+  contents = await db.collection("Contents").find({type:{ $regex: new RegExp(contentType, 'i') }}).sort({_id:-1}).skip(req.body.page*10).limit(10).toArray();
+  }
+  else{
+    contents = await db.collection("Contents").find({type:{ $not:{ $in:[/^audio/, /^video/, /^image/] }}}).sort({_id:-1}).skip(req.body.page*10).limit(10).toArray();
+  }
   res.send({code:200, data:contents})
 })
+
 //login api
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
@@ -236,6 +249,11 @@ app.get('/content/:address', async(req, res) => {
     res.send({code:200, data:result});
 });
 
+//api for get most viewed content
+app.get('/trending', async(req, res)=>{
+  const records = await db.collection('Contents').find().sort({view:-1}).limit(10).toArray()
+  res.send({code:200, data:records})
+})
 
 //get all reviews of content
 app.get('/reviews/:address', async(req, res)=>{
