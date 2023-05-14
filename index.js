@@ -84,7 +84,7 @@ const thumbnails = multer({storage:storageThumb});
 //get user info
 app.post('/userInfo', async function(req, res){
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
-    console.log("ethAddress ", req.body.ethAddress)
+    console.log("ethAddress", req.body.ethAddress)
     res.send({code:200, data:account});
   })
 
@@ -152,6 +152,7 @@ app.post('/updateProfile', upload.single('image'), async function(req, res){
       
     }
   });
+
 app.post('/updateDetails', async function(req, res){
   db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
   res.send({code:200, msg:"account update successful"})
@@ -194,7 +195,9 @@ app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
 //upload review of content
 app.post('/uploadReview', async(req, res)=>{
   const {review, ethAddress, address} = req.body;
+  console.log("review ", review)
   await db.collection("Reviews").insertOne({address, ethAddress, review});
+  
   res.send({code:200, msg:"review uploaded"});
 })
 
@@ -211,6 +214,20 @@ async function uploadIPFS(req){
   });
   return cid;
 }
+
+//api to maintain history of user
+app.post('/addHistory', async(req, res)=>{
+  const {ethAddress, address, action} = req.body
+  //action has only 3 possible values 0(view),1(license) and 2(ownership)
+  await db.collection('History').insertOne({ethAddress, address, action, date:new Date()})
+  res.send({code:200, msg:"history added"})
+})
+//api to get user history
+app.get("/getHistory/:ethAddress", async(req, res)=>{
+  const {ethAddress} = req.params;
+  const history = await db.collection('History').find({ethAddress}).toArray()
+  res.send({code:200, data:history})
+})
 //api for content detail fetch from database
 app.get('/content/:address', async(req, res) => {
     console.log("hello");
