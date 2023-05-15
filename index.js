@@ -84,7 +84,6 @@ const thumbnails = multer({storage:storageThumb});
 //get user info
 app.post('/userInfo', async function(req, res){
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
-    console.log("ethAddress", req.body.ethAddress)
     res.send({code:200, data:account});
   })
 
@@ -114,11 +113,16 @@ app.post('/explore', async function(req, res){
 //login api
 app.post('/login', async (req,res)=>{
     let account = await db.collection("Users").findOne({ethAddress:req.body.user});
+    console.log("login ", req.body.user)
     if(account == null){
        await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"dummyProfile.jpg"})
        account = await db.collection("Users").findOne({ethAddress:req.body.user});
     }
-    //get token and compare
+    //testing purpose
+    res.send({code:200, data:account})
+    
+    //disable only for testing purpose
+    /*//get token and compare
     //console.log("user", req.body);
     const user = req.body.user;
     const token = req.cookies?req.cookies.token:null;
@@ -136,14 +140,16 @@ app.post('/login', async (req,res)=>{
         
         return;
     }
-    res.send({code:500, msg:"logout account from other devices!!!"});
+    res.send({code:500, msg:"logout account from other devices!!!"});*/
 });
 
 //logout api
 app.post('/logout', async(req, res)=>{
   const {ethAddress} = req.body;
+  console.log("logout ", ethAddress)
   await db.collection('UserLogs').deleteOne({ethAddress})
   res.send({code:"200", msg:"logout successful"})
+
 })
 //generate token by taking hash of ethereum address and date
 function generateToken(user){ 
