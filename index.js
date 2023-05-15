@@ -90,7 +90,8 @@ app.post('/userInfo', async function(req, res){
 
 //get content
 app.post('/content', async function(req, res){
-    let contents = await db.collection("Contents").find(req.body.condition).toArray();
+    console.log("condition ", req.body.searchTerm)
+    let contents = await db.collection("Contents").find({title:{ $regex: new RegExp(req.body.searchTerm, 'i') }}).toArray();
     res.send({code:200, data:contents})
 })
 //get latest content
