@@ -343,7 +343,7 @@ app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid/:ext', async function(req,
     return;
   }
   //console.log("data ", data)
-  db.collection("Contents").updateOne({address:contractAddr}, {$inc:{view:1}})
+  //db.collection("Contents").updateOne({address:contractAddr}, {$inc:{view:1}})
   const encrypted = Buffer.from(data, 'base64url');
   
   // Decrypt the encrypted buffer with the private key
