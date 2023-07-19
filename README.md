@@ -1,3 +1,15 @@
+# Prerequisite
+You should have following things installed:
+- Jsipfs
+- Ganache
+- NodeJS
+# How to run
+Follow the steps to run Backend of Application:
+ - open terminal and run `jsipfs daemon` command
+ - start ganache ethereum workspace
+ - open terminal in project directory and run `npm i` command, to make sure all dependencies are installed
+ - now run `npm start` command, to start backend
+# Description of APIs
 UserInfo
 goal: get information of user such as profile, name and bio
 input: send ethereum address in body with key as "ethAddress".
