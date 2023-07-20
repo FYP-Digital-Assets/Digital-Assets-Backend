@@ -301,14 +301,15 @@ app.get('/ipfs/:cid/:ext', async function(req, res){
 app.get('/view/:address/:txHash/:ext', async function(req, res){
   const txHash = req.params.txHash;
   const ext = req.params.ext;
-  const record = db.collection("ViewTxHistory").find({txHash});
+  const record = await db.collection("ViewTxHistory").find({txHash}).toArray();
+  console.log("view rec ",txHash, " " ,record)
   db.collection("Contents").updateOne({address:req.params.address}, {$inc:{view:1}})
-  if(record){
-    res.send({code:500, msg:"view already claimed"})
+  if(record.length>0){
+    res.send("View Already Claimed")
     return;
   }
   const data = await ReadTX(txHash);
-  //console.log("data ", data)
+  console.log("data ", data)
   const encrypted = Buffer.from(data, 'base64url');
   
   // Decrypt the encrypted buffer with the private key
