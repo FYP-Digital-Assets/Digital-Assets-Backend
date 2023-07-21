@@ -83,18 +83,27 @@ const thumbnails = multer({storage:storageThumb});
 //   });
 //get user info
 app.post('/userInfo', async function(req, res){
+    try{
     let account = await db.collection("Users").findOne({ethAddress:req.body.ethAddress});
     res.send({code:200, data:account});
+    }catch(e){
+      console.log(e)
+    }
   })
 
 //get content
 app.post('/content', async function(req, res){
+  try{
     console.log("condition ", req.body.searchTerm)
     let contents = await db.collection("Contents").find({title:{ $regex: new RegExp(req.body.searchTerm, 'i') }}).toArray();
     res.send({code:200, data:contents})
+  }catch(e){
+    console.log(e)
+  }
 })
 //get latest content
 app.post('/explore', async function(req, res){
+  try{
   let {contentType} = req.body
   contentType = contentType.toLowerCase()
   if(contentType == "all"){
@@ -108,11 +117,15 @@ app.post('/explore', async function(req, res){
     contents = await db.collection("Contents").find({type:{ $not:{ $in:[/^audio/, /^video/, /^image/] }}}).sort({_id:-1}).skip(req.body.page*10).limit(10).toArray();
   }
   res.send({code:200, data:contents})
+  }catch(e){
+    console.log(e)
+  }
 })
 
 //login api
 app.post('/login', async (req,res)=>{
-    let account = await db.collection("Users").findOne({ethAddress:req.body.user});
+    try{
+      let account = await db.collection("Users").findOne({ethAddress:req.body.user});
     console.log("login ", req.body.user)
     if(account == null){
        await db.collection("Users").insertOne({name:"unnamed", ethAddress:req.body.user, bio:"N/A", img:"dummyProfile.jpg"})
@@ -141,15 +154,21 @@ app.post('/login', async (req,res)=>{
         return;
     }
     res.send({code:500, msg:"logout account from other devices!!!"});*/
+  }catch(e){
+    console.log(e)
+  }
 });
 
 //logout api
 app.post('/logout', async(req, res)=>{
+  try{
   const {ethAddress} = req.body;
   console.log("logout ", ethAddress)
   await db.collection('UserLogs').deleteOne({ethAddress})
   res.send({code:"200", msg:"logout successful"})
-
+  }catch(e){
+    console.log(e)
+  }
 })
 //generate token by taking hash of ethereum address and date
 function generateToken(user){ 
@@ -162,6 +181,7 @@ async function getTokenFromDB(user){
 }
 //update account api
 app.post('/updateProfile', upload.single('image'), async function(req, res){
+    try{
     if(!req.file){
         res.send({code:500, msg:'account Update failed'});
     }
@@ -171,15 +191,22 @@ app.post('/updateProfile', upload.single('image'), async function(req, res){
       })
       
     }
+  }catch(e){
+    console.log(e)
+  }
   });
 
 app.post('/updateDetails', async function(req, res){
-  db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
+  try{
+    db.collection("Users").updateOne({ethAddress:req.body.ethAddress}, {$set:req.body.details})
   res.send({code:200, msg:"account update successful"})
+}catch(e){
+  console.log(e)
+}
 })
 //upload main content on ipfs and return encrypted cid
 app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
-  
+  try{
   let cid = await uploadIPFS(req);
   const hash = createHash('sha256').update(cid).digest("hex");
   const result = await db.collection("HashedCid").findOne({hash})
@@ -194,31 +221,44 @@ app.post('/uploadMainContent', tempUpload.single('file'), async(req, res)=>{
 
   cid = encrypted.toString('base64url');
   res.send({code:"200", msg:"uploaded successful", cid:cid.toString()});
+}catch(e){
+  console.log(e)
+}
 })
 //upload clip of content on ipfs and return cid
 app.post('/uploadClipContent', tempUpload.single('file'), async(req, res)=>{
+  try{
   //console.log(req.files)
   let cid = await uploadIPFS(req);
 
   res.send({code:"200", msg:"today", cid});
+}catch(e){
+  console.log(e)
+}
 })
 //upload thumbnail on server, and store additional details on database
 app.post('/uploadContent', thumbnails.single('file'), async(req, res)=>{
-  console.log("body obj ",req.body.obj)
+  try{console.log("body obj ",req.body.obj)
   const obj = JSON.parse(req.body.obj);
   
   await db.collection("Contents").insertOne({address:obj.address, title:obj.title, type:obj.type, description: obj.description,clip:obj.clip, thumbnail:req.file.filename, date:new Date().toLocaleString(), ext:obj.ext, view:0});
 
   res.send({code:200, msg:"content uploaded successfully!"});
+}catch(e){
+  console.log(e)
+}
 })
 
 //upload review of content
 app.post('/uploadReview', async(req, res)=>{
-  const {review, ethAddress, address} = req.body;
+  try{const {review, ethAddress, address} = req.body;
   console.log("review ", review)
   await db.collection("Reviews").insertOne({address, ethAddress, review});
   
   res.send({code:200, msg:"review uploaded"});
+}catch(e){
+  console.log(e)
+}
 })
 
 //input file then upload on ipfs and return cid
@@ -237,23 +277,35 @@ async function uploadIPFS(req){
 
 //api to maintain history of user
 app.post('/addHistory', async(req, res)=>{
+  try{
   const {ethAddress, address, action} = req.body
   //action has only 3 possible values 0(view),1(license) and 2(ownership)
   await db.collection('History').insertOne({ethAddress, address, action, date:new Date()})
   res.send({code:200, msg:"history added"})
+}catch(e){
+  console.log(e)
+}
 })
 //api to get user history
 app.get("/getHistory/:ethAddress", async(req, res)=>{
+  try{
   const {ethAddress} = req.params;
   const history = await db.collection('History').find({ethAddress}).toArray()
   res.send({code:200, data:history})
+}catch(e){
+  console.log(e)
+}
 })
 //api for content detail fetch from database
 app.get('/content/:address', async(req, res) => {
-    console.log("hello");
+  try{  
+  //console.log("hello");
     const address = req.params.address;
     const result = await db.collection("Contents").findOne({address})
     res.send({code:200, data:result});
+  }catch(e){
+    console.log(e)
+  }
 });
 
 //api for get most viewed content
@@ -264,24 +316,37 @@ app.get('/trending', async(req, res)=>{
 
 //get all reviews of content
 app.get('/reviews/:address', async(req, res)=>{
+  try{
   const address = req.params.address;
   const reviews = await db.collection("Reviews").find({address}).toArray();
   res.send({code:200, reviews})
+}catch(e){
+  console.log(e)
+}
 })
 
 //access profile images with url
 app.get('/profileImgs/:filename', function(req, res) {
-    const fileName = req.params.filename;
+  try{  
+  const fileName = req.params.filename;
     res.sendFile("profileImgs/"+fileName, { root: '.' })
+  }catch(e){
+    console.log(e)
+  }
   });
 //access thumbnail image with url
 app.get('/thumbnail/:filename', function(req, res) {
-    const fileName = req.params.filename;
+  try{  
+  const fileName = req.params.filename;
     res.sendFile("thumbnails/"+fileName, { root: '.' })
+  }catch(e){
+    console.log(e)
+  }
   });
 
 //access content from ipfs with non encrypted cid
 app.get('/ipfs/:cid/:ext', async function(req, res){
+  try{
   const cid = req.params.cid;
   const ext = req.params.ext
   const buffer = await getDataBuffer(cid)
@@ -297,9 +362,13 @@ app.get('/ipfs/:cid/:ext', async function(req, res){
     // delete the temporary file after sending it
     fs.unlinkSync(tempFilePath)
   })
+}catch(e){
+  console.log(e)
+}
 })
 app.get('/view/:address/:txHash/:ext', async function(req, res){
-  const txHash = req.params.txHash;
+  try{
+    const txHash = req.params.txHash;
   const ext = req.params.ext;
   const record = await db.collection("ViewTxHistory").find({txHash}).toArray();
   console.log("view rec ",txHash, " " ,record)
@@ -330,9 +399,13 @@ app.get('/view/:address/:txHash/:ext', async function(req, res){
     // delete the temporary file after sending it
     fs.unlinkSync(tempFilePath)
   })
+}catch(e){
+  console.log(e)
+}
 })
 
 app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid/:ext', async function(req, res){
+  try{
   const ext = req.params.ext
   const contractAddr = req.params.contractAddr;
   const userAddr = req.params.userAddr;
@@ -363,10 +436,14 @@ app.get('/licenseOrOwner/:contractAddr/:userAddr/:cid/:ext', async function(req,
     // delete the temporary file after sending it
     fs.unlinkSync(tempFilePath)
   })
+}catch(e){
+  console.log(e)
+}
 })
 
 //get data from ipfs and send it in buffer
 async function getDataBuffer(cid){
+  try{
   const file = await ipfs.getFile(cid);
 
   const fileContents = []
@@ -376,16 +453,27 @@ async function getDataBuffer(cid){
   
   const buffer = Buffer.concat(fileContents)
   return buffer;
+}catch(e){
+  console.log(e)
+}
 }
 
 //api for digital asset contract address and abi
 app.get('/digitalAssetContract', function(req, res){
+  try{
   res.send({abi:constants.contracts.digitalAsset.abi, address:constants.contracts.digitalAsset.address});
+}catch(e){
+  console.log(e)
+}
 });
 
 //api for asset abi
 app.get('/assetContract', function(req, res){
-  res.send({abi:constants.contracts.asset})
+  try{
+    res.send({abi:constants.contracts.asset})
+  }catch(e){
+    console.log(e)
+  }
 })
 
 //server start listening
