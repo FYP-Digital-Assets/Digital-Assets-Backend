@@ -2,6 +2,7 @@
 You should have following things installed:
 - Jsipfs
 - Ganache
+- MongoDB
 - NodeJS
 # How to run
 Follow the steps to run Backend of Application:
@@ -9,7 +10,8 @@ Follow the steps to run Backend of Application:
  - start ganache ethereum workspace
  - run contractDeployement using `node contractDeployement.js` command
  - open terminal in project directory and run `npm i` command, to make sure all dependencies are installed
- - now run `npm start` command, to start backend
+ - now run `mongodbUri=<Connection URI of MongoDB> npm start` command with your mongodb connection uri, to start backend
+ - now you should move to frontend directory and start it, You will find instructions to run frontend in README file of frontend repository!
 # Description of APIs
 UserInfo
 goal: get information of user such as profile, name and bio
