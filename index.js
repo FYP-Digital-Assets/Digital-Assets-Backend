@@ -475,7 +475,6 @@ app.get('/assetContract', function(req, res){
     console.log(e)
   }
 })
-
 //server start listening
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);
