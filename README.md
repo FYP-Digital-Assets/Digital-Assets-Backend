@@ -7,6 +7,7 @@ You should have following things installed:
 Follow the steps to run Backend of Application:
  - open terminal and run `jsipfs daemon` command
  - start ganache ethereum workspace
+ - run contractDeployement using `node contractDeployement.js` command
  - open terminal in project directory and run `npm i` command, to make sure all dependencies are installed
  - now run `npm start` command, to start backend
 # Description of APIs
